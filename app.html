@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NapWindow - app</title>
+<style>
+  :root { --bg:#0c1416; --card:#132024; --card2:#0f1a1d; --line:#1e3237; --ink:#e8f4f2; --dim:#8fb3ad; --teal:#5eead4; --amber:#fbbf24; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width:760px; margin:0 auto; padding:28px 20px 64px; }
+  header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:22px; }
+  header h1 { font-size:26px; margin:0; }
+  header h1 span { color:var(--teal); }
+  header a { color:var(--dim); text-decoration:none; font-size:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin:0 0 18px; }
+  .card h2 { margin:0 0 14px; font-size:18px; }
+  label { display:block; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--dim); margin:0 0 6px; }
+  input { width:100%; background:var(--card2); border:1px solid var(--line); color:var(--ink); border-radius:10px; padding:10px 12px; font-size:16px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr auto; gap:14px; align-items:end; }
+  button { background:var(--teal); color:#06231e; border:0; font-weight:700; border-radius:10px; padding:11px 22px; font-size:16px; cursor:pointer; }
+  .hint { color:var(--dim); font-size:14px; margin-top:10px; }
+  .sched { list-style:none; margin:14px 0 0; padding:0; }
+  .sched li { display:flex; justify-content:space-between; padding:10px 4px; border-top:1px solid var(--line); font-size:16px; }
+  .sched li .t { color:var(--teal); font-variant-numeric:tabular-nums; }
+  .sched li.bed .t { color:var(--amber); }
+  .stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  .stat { background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .stat b { display:block; font-size:26px; color:var(--teal); font-variant-numeric:tabular-nums; }
+  .stat span { color:var(--dim); font-size:13px; }
+  .pill { display:inline-block; margin-top:10px; padding:6px 12px; border-radius:999px; font-size:14px; font-weight:600; }
+  .pill.awake { background:#12312c; color:var(--teal); }
+  .pill.in-window { background:#3a2c07; color:var(--amber); }
+  .pill.overdue { background:#3a1414; color:#fca5a5; }
+  .loglist { margin-top:12px; color:var(--dim); font-size:14px; }
+  .loglist div { border-top:1px solid var(--line); padding:6px 2px; display:flex; justify-content:space-between; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Nap<span>Window</span></h1>
+    <a href="index.html">&larr; Home</a>
+  </header>
+
+  <div class="card">
+    <h2>Set up today</h2>
+    <div class="row">
+      <div><label for="f-dob">Birthday</label><input id="f-dob" type="date"></div>
+      <div><label for="f-wake">Woke up at</label><input id="f-wake" type="time" value="07:00"></div>
+    </div>
+    <button id="f-build">Build today's schedule</button>
+    <p class="hint" id="hint">Pick a birthday to see the wake window for that age.</p>
+  </div>
+
+  <div class="card" id="nowcard">
+    <h2>Right now</h2>
+    <div class="row">
+      <div><label for="f-lastwake">Last woke at</label><input id="f-lastwake" type="time"></div>
+    </div>
+    <span class="pill awake" id="nowpill">-</span>
+    <p class="hint" id="nowhint">Enter when the baby last woke to see where you are in the current window.</p>
+  </div>
+
+  <div class="card">
+    <h2>Log a nap</h2>
+    <div class="row3">
+      <div><label for="f-start">Started at</label><input id="f-start" type="time"></div>
+      <div><label for="f-len">Minutes</label><input id="f-len" type="number" min="5" max="240" value="60"></div>
+      <button id="f-log">Log</button>
+    </div>
+    <div class="loglist" id="loglist"></div>
+  </div>
+
+  <div class="card">
+    <h2>Your record</h2>
+    <div class="stats">
+      <div class="stat"><b id="s-naps">0</b><span>naps logged</span></div>
+      <div class="stat"><b id="s-avg">0</b><span>avg minutes</span></div>
+      <div class="stat"><b id="s-days">0</b><span>days tracked</span></div>
+    </div>
+  </div>
+</div>
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var KEY = 'napwindow-log';
+  var $ = function (id) { return document.getElementById(id); };
+
+  function loadLog() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } }
+  function saveLog(l) { localStorage.setItem(KEY, JSON.stringify(l)); }
+
+  function toMin(t) { var p = t.split(':'); return (+p[0]) * 60 + (+p[1]); }
+  function nowMin() { var d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+
+  function currentBracket() {
+    var dob = $('f-dob').value;
+    if (!dob) return null;
+    return NapEngine.bracketFor(NapEngine.ageInMonths(dob, new Date()));
+  }
+
+  function renderHint() {
+    var b = currentBracket();
+    if (!b) { $('hint').textContent = 'Pick a birthday to see the wake window for that age.'; return; }
+    var m = NapEngine.ageInMonths($('f-dob').value, new Date());
+    $('hint').textContent = 'Age ' + m + ' months - window ' + b.winMin + '-' + b.winMax + ' min, about ' + b.naps + ' nap' + (b.naps > 1 ? 's' : '') + ' a day. ' + b.note + '.';
+  }
+
+  function build() {
+    var b = currentBracket();
+    if (!b) { $('hint').textContent = 'Pick a birthday first.'; return; }
+    renderHint();
+    var old = $('schedlist'); if (old) old.remove();
+    var ul = document.createElement('ul');
+    ul.className = 'sched'; ul.id = 'schedlist';
+    NapEngine.buildSchedule(toMin($('f-wake').value || '07:00'), b).forEach(function (e) {
+      var li = document.createElement('li');
+      if (e.kind === 'bed') li.className = 'bed';
+      var span = document.createElement('span'); span.textContent = e.label;
+      var t = document.createElement('span'); t.className = 't';
+      t.textContent = e.kind === 'bed' ? NapEngine.fmt(e.start) : NapEngine.fmt(e.start) + ' - ' + NapEngine.fmt(e.end);
+      li.appendChild(span); li.appendChild(t); ul.appendChild(li);
+    });
+    $('hint').parentNode.appendChild(ul);
+  }
+
+  function renderNow() {
+    var b = currentBracket();
+    var lw = $('f-lastwake').value;
+    if (!b || !lw) return;
+    var w = NapEngine.nextWindow(toMin(lw), nowMin(), b);
+    var pill = $('nowpill');
+    pill.className = 'pill ' + w.state;
+    if (w.state === 'awake') {
+      pill.textContent = 'Awake ' + w.elapsed + ' min - window opens in ' + w.toWindowMin + ' min';
+      $('nowhint').textContent = 'Aim to start winding down around ' + NapEngine.fmt(w.windowStart) + '.';
+    } else if (w.state === 'in-window') {
+      pill.textContent = 'In the window (' + NapEngine.fmt(w.windowStart) + ' - ' + NapEngine.fmt(w.windowEnd) + ')';
+      $('nowhint').textContent = 'Good time for a nap. Window closes ' + NapEngine.fmt(w.windowEnd) + '.';
+    } else {
+      pill.textContent = 'Overdue by ' + w.overdueBy + ' min';
+      $('nowhint').textContent = 'Past the window - keep it calm and offer sleep soon.';
+    }
+  }
+
+  function renderLog() {
+    var log = loadLog();
+    var st = NapEngine.stats(log);
+    $('s-naps').textContent = st.naps;
+    $('s-avg').textContent = st.avgMinutes;
+    $('s-days').textContent = st.days;
+    var box = $('loglist'); box.innerHTML = '';
+    log.slice(-6).reverse().forEach(function (x) {
+      var d = document.createElement('div');
+      var a = document.createElement('span');
+      a.textContent = NapEngine.dayKey(new Date(x.at)) + ' - nap at ' + NapEngine.fmt(x.startMin);
+      var z = document.createElement('span');
+      z.textContent = (x.endMin - x.startMin) + ' min';
+      d.appendChild(a); d.appendChild(z); box.appendChild(d);
+    });
+  }
+
+  $('f-build').addEventListener('click', build);
+  $('f-dob').addEventListener('change', function () { renderHint(); renderNow(); });
+  $('f-lastwake').addEventListener('change', renderNow);
+  $('f-log').addEventListener('click', function () {
+    var s = $('f-start').value, len = Math.max(5, Math.min(240, +$('f-len').value || 60));
+    if (!s) return;
+    var log = loadLog();
+    log.push({ id: Date.now(), startMin: toMin(s), endMin: toMin(s) + len, at: new Date().toISOString() });
+    saveLog(log); renderLog();
+  });
+
+  renderHint(); renderLog();
+})();
+</script>
+</body>
+</html>
