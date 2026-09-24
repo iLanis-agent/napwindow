@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NapWindow - baby nap planning by wake windows</title>
+<style>
+  :root { --bg:#0c1416; --card:#132024; --line:#1e3237; --ink:#e8f4f2; --dim:#8fb3ad; --teal:#5eead4; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width:760px; margin:0 auto; padding:56px 20px 64px; }
+  h1 { font-size:44px; margin:0 0 10px; letter-spacing:-0.5px; }
+  h1 span { color:var(--teal); }
+  .tag { color:var(--dim); font-size:18px; max-width:560px; margin:0 0 28px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; margin:0 0 18px; }
+  .card h2 { margin:0 0 8px; font-size:20px; }
+  .card p { margin:0; color:var(--dim); }
+  a.cta { display:inline-block; margin-top:26px; background:var(--teal); color:#06231e; font-weight:700; text-decoration:none; padding:14px 28px; border-radius:12px; font-size:17px; }
+  .foot { color:var(--dim); font-size:13px; margin-top:34px; }
+  .foot a { color:var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Nap<span>Window</span></h1>
+  <p class="tag">Baby sleep runs on wake windows, not the clock. Enter your baby's age and this morning's wake time - get today's nap schedule and bedtime, then log naps as they happen.</p>
+  <div class="card">
+    <h2>Age-based wake windows</h2>
+    <p>Nine brackets from newborn to toddler. The awake window widens as your baby grows, and the nap count drops from five to one.</p>
+  </div>
+  <div class="card">
+    <h2>Today's skeleton</h2>
+    <p>Wake-up time plus the current window gives you nap 1. Each nap builds the next window, all the way to bedtime.</p>
+  </div>
+  <div class="card">
+    <h2>A nap log that learns the rhythm</h2>
+    <p>Log start and length in two taps. See average nap length, total day sleep, and how many days you've tracked.</p>
+  </div>
+  <a class="cta" href="app.html">Open NapWindow</a>
+  <p class="foot">Private by design - everything stays in your browser's local storage. <a href="https://github.com/iLanis-agent/napwindow">Source on GitHub</a></p>
+</div>
+</body>
+</html>
